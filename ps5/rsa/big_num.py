@@ -257,6 +257,40 @@ class BigNum(object):
     Slow method for multiplying two numbers w/ good constant factors.
     '''
     return self.fast_mul(other)
+    #~ return self.tims_mul(other)
+    
+  def tims_mul(self, other):
+    '''
+    MULTIPLY(A, B, N)
+    1 C = ZERO(2N)
+    2 for i = 1 to N
+    3   carry = 0
+    4   for j = 1 to N
+    5     digit = A[i] . B[j] + WORD(C[i + j - 1]) + WORD(carry)
+    6     C[i + j - 1] = LSB(digit)
+    7     carry = MSB(digit)
+    8   C[i + N] = carry
+    9 return C    
+    
+    A=self
+    B=other
+    
+    '''
+    # TODO first attempt, unlikely to work
+    # TODO think about arrays offset from zero vs offset from 1 in the pseudocode above
+    #      in particular, the C[i+j-1] on lines 5 and 6
+    # TODO probably don't need to loop from 0 to N, for both i and j, maybe we can stop sooner
+    # TODO Find out where these Byte and Word classes are defined
+    N = max(len(self.d), len(other.d))
+    C = BigNum.zero(2*N)
+    for i in range(0, N):
+      carry = Word.zero() # maybe...
+      for j in range(0, N):
+        digit = (self.d[i] * other.d[j]) + C.d[i+j] + carry # we're mixing Bytes and Words and ints here, it doesn't compile
+        C.d[i+j] = digit.lsb()
+        carry = digit.msb()
+      C.d[i+N] = carry # TODO N-1?
+    return C
 
   def fast_mul(self, other):
     '''

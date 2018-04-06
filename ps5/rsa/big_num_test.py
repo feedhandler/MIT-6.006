@@ -9,6 +9,11 @@ else:
   from big_num import *
 
 class BigNumTest(unittest.TestCase):
+  
+  def tims_test(self):
+    print "tims_test"
+    BigNum.zero(12).tims_mul(BigNum.zero(10))
+  
   def test_equality(self):
     self.assertEqual(BigNum.zero(1), BigNum.zero(1))
     self.assertEqual(BigNum.zero(1), BigNum.zero(2))
