@@ -1,4 +1,4 @@
-SOLUTION TEMPLATE INSTRUCTIONS..
+SOLUTION TEMPLATE INSTRUCTIONS.
 
 We have prepared templates for you in writeup/ps5_answers.tex and
 writeup/ps5e_answers.tex. Please modify them to include all your answers, except
