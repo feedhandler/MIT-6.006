@@ -19,7 +19,6 @@ using a diff tool to compare your version to the original.
     Linux / MacOS:   diff ps2_sol.tex ps2_orig.tex
     Windows:         fc ps2_sol.tex ps2_orig.tex
 
-
 MULTIPLE CHOICE QUESTIONS
 
 The answer for multiple choice questions should be the number to the left of
