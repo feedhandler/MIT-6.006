@@ -1,3 +1,3 @@
 # MIT-6.006
 
-Problems sets from MIT 6.006
+Problem Sets from MIT 6.006
