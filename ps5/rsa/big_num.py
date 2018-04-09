@@ -273,13 +273,17 @@ class BigNum(object):
     '''
     N = max(len(self.d), len(other.d))
     C = BigNum.zero(2*N)
+    # loop from 0...len instead of 0..N, the code is cleaner as we don't have to bounds check
     for i in range(0, len(self.d)):
       carry = Byte.zero()
+      # loop from 0...len instead of 0..N, same reasoning as above
       for j in range(0, len(other.d)):
         x = self.d[i] * other.d[j]
+        # it's i+j not i+j-1 like the pseudocode, because of zero-indexed arrays
         digit = x + Word.from_byte(C.d[i+j]) + Word.from_byte(carry)
         C.d[i+j] = digit.lsb()
         carry = digit.msb()
+      # different index to pseudocode, because we're not looping to N
       C.d[i+j+1] = carry
     return C.normalize()
 
@@ -372,12 +376,17 @@ class BigNum(object):
       i = i + 1
       S.append(S[i-1] + S[i-1])
       if len(S[i].d) > N:
+        # very confusing indexing here:
+        #   the S array is zero indexed in the pseudocode, so we can use the same index in the real code
+        #   the S.d array is 1-indexed in the pseudocode, so our index here is N, not N+1
         if S[i].d[N] > Byte.zero():
           break
       if S[i] > self:
         break
+    # remember we need to go "one past the end" in the 2nd argument of the range() function
     for j in range(i-1, -1, -1):
       Q = Q + Q
+      # GE instead of !Smaller
       if R >= S[j]:
         R = R - S[j]
         Q = Q + BigNum.one()
