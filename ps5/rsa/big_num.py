@@ -255,12 +255,7 @@ class BigNum(object):
   def slow_mul(self, other):
     '''
     Slow method for multiplying two numbers w/ good constant factors.
-    '''
-    return self.fast_mul(other)
-    #~ return self.tims_mul(other)
     
-  def tims_mul(self, other):
-    '''
     MULTIPLY(A, B, N)
     1 C = ZERO(2N)
     2 for i = 1 to N
@@ -271,26 +266,22 @@ class BigNum(object):
     7     carry = MSB(digit)
     8   C[i + N] = carry
     9 return C    
-    
-    A=self
-    B=other
-    
+
+    Reminder:
+      A=self
+      B=other
     '''
-    # TODO first attempt, unlikely to work
-    # TODO think about arrays offset from zero vs offset from 1 in the pseudocode above
-    #      in particular, the C[i+j-1] on lines 5 and 6
-    # TODO probably don't need to loop from 0 to N, for both i and j, maybe we can stop sooner
-    # TODO Find out where these Byte and Word classes are defined
     N = max(len(self.d), len(other.d))
     C = BigNum.zero(2*N)
-    for i in range(0, N):
-      carry = Word.zero() # maybe...
-      for j in range(0, N):
-        digit = (self.d[i] * other.d[j]) + C.d[i+j] + carry # we're mixing Bytes and Words and ints here, it doesn't compile
+    for i in range(0, len(self.d)):
+      carry = Byte.zero()
+      for j in range(0, len(other.d)):
+        x = self.d[i] * other.d[j]
+        digit = x + Word.from_byte(C.d[i+j]) + Word.from_byte(carry)
         C.d[i+j] = digit.lsb()
         carry = digit.msb()
-      C.d[i+N] = carry # TODO N-1?
-    return C
+      C.d[i+j+1] = carry
+    return C.normalize()
 
   def fast_mul(self, other):
     '''
@@ -348,9 +339,50 @@ class BigNum(object):
   def slow_divmod(self, other):
     '''
     Slow method for dividing two numbers w/ good constant factors.
-    '''
-    return self.fast_divmod(other)
 
+    This is the pseudocode from the pdf
+    It is not reprodued accurately here because the subscripts don't print correctly in this font
+    e.g. for Si-1 the "i-1" bit should be in subscript
+    DIVMOD(A, B, N)
+    1 Q = ZERO(N) // quotient
+    2 R = COPY(A, N) // remainder
+    3 S0 = COPY(B, N) // Si = B · 2^i
+    4 i=0
+    5 repeat
+    6   i = i +1
+    7   Si = ADD(Si-1 , Si-1, N)
+    8 until Si[N + 1] > 0 or CMP(Si, A, N) == GREATER
+    9 for j = i − 1 downto 0
+    10  Q = ADD(Q, Q, N)
+    11  if CMP(R, Sj, N) != SMALLER
+    12    R = SUBTRACT(R, Sj, N)
+    13    Q[0] = Q[0]k1 // Faster version of Q = Q + 1
+    14 return(Q, R)
+    
+    Reminder:
+      A=self
+      B=other
+    '''
+    N = max(len(self.d), len(other.d))
+    Q = BigNum.zero(N)
+    R = self
+    S = [other]
+    i = 0
+    while True:
+      i = i + 1
+      S.append(S[i-1] + S[i-1])
+      if len(S[i].d) > N:
+        if S[i].d[N] > Byte.zero():
+          break
+      if S[i] > self:
+        break
+    for j in range(i-1, -1, -1):
+      Q = Q + Q
+      if R >= S[j]:
+        R = R - S[j]
+        Q = Q + BigNum.one()
+    return (Q, R)
+    
   def fast_divmod(self, other):
     '''
     Asymptotically fast method for dividing two numbers.
