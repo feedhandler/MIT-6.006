@@ -69,7 +69,7 @@ class BigNum(object):
       else:
         byte_string = hex_string[(i - 2):i]
       digits.append(Byte.from_hex(byte_string))
-    return BigNum(digits)
+    return BigNum(digits, None, True)
   
   @staticmethod
   def h(hex_string):
@@ -255,37 +255,8 @@ class BigNum(object):
   def slow_mul(self, other):
     '''
     Slow method for multiplying two numbers w/ good constant factors.
-    
-    MULTIPLY(A, B, N)
-    1 C = ZERO(2N)
-    2 for i = 1 to N
-    3   carry = 0
-    4   for j = 1 to N
-    5     digit = A[i] . B[j] + WORD(C[i + j - 1]) + WORD(carry)
-    6     C[i + j - 1] = LSB(digit)
-    7     carry = MSB(digit)
-    8   C[i + N] = carry
-    9 return C    
-
-    Reminder:
-      A=self
-      B=other
     '''
-    N = max(len(self.d), len(other.d))
-    C = BigNum.zero(2*N)
-    # loop from 0...len instead of 0..N, the code is cleaner as we don't have to bounds check
-    for i in range(0, len(self.d)):
-      carry = Byte.zero()
-      # loop from 0...len instead of 0..N, same reasoning as above
-      for j in range(0, len(other.d)):
-        x = self.d[i] * other.d[j]
-        # it's i+j not i+j-1 like the pseudocode, because of zero-indexed arrays
-        digit = x + Word.from_byte(C.d[i+j]) + Word.from_byte(carry)
-        C.d[i+j] = digit.lsb()
-        carry = digit.msb()
-      # different index to pseudocode, because we're not looping to N
-      C.d[i+j+1] = carry
-    return C.normalize()
+    return self.fast_mul(other)
 
   def fast_mul(self, other):
     '''
@@ -343,55 +314,9 @@ class BigNum(object):
   def slow_divmod(self, other):
     '''
     Slow method for dividing two numbers w/ good constant factors.
-
-    This is the pseudocode from the pdf
-    It is not reprodued accurately here because the subscripts don't print correctly in this font
-    e.g. for Si-1 the "i-1" bit should be in subscript
-    DIVMOD(A, B, N)
-    1 Q = ZERO(N) // quotient
-    2 R = COPY(A, N) // remainder
-    3 S0 = COPY(B, N) // Si = B . 2^i
-    4 i=0
-    5 repeat
-    6   i = i +1
-    7   Si = ADD(Si-1 , Si-1, N)
-    8 until Si[N + 1] > 0 or CMP(Si, A, N) == GREATER
-    9 for j = i - 1 downto 0
-    10  Q = ADD(Q, Q, N)
-    11  if CMP(R, Sj, N) != SMALLER
-    12    R = SUBTRACT(R, Sj, N)
-    13    Q[0] = Q[0]k1 // Faster version of Q = Q + 1
-    14 return(Q, R)
-    
-    Reminder:
-      A=self
-      B=other
     '''
-    N = max(len(self.d), len(other.d))
-    Q = BigNum.zero(N)
-    R = self
-    S = [other]
-    i = 0
-    while True:
-      i = i + 1
-      S.append(S[i-1] + S[i-1])
-      if len(S[i].d) > N:
-        # very confusing indexing here:
-        #   the S array is zero indexed in the pseudocode, so we can use the same index in the real code
-        #   the S.d array is 1-indexed in the pseudocode, so our index here is N, not N+1
-        if S[i].d[N] > Byte.zero():
-          break
-      if S[i] > self:
-        break
-    # remember we need to go "one past the end" in the 2nd argument of the range() function
-    for j in range(i-1, -1, -1):
-      Q = Q + Q
-      # GE instead of !Smaller
-      if R >= S[j]:
-        R = R - S[j]
-        Q = Q + BigNum.one()
-    return (Q, R)
-    
+    return self.fast_divmod(other)
+
   def fast_divmod(self, other):
     '''
     Asymptotically fast method for dividing two numbers.
@@ -488,3 +413,39 @@ class BigNum(object):
   def is_normalized(self):
     '''False if the number has at least one trailing 0 (zero) digit.'''
     return len(self.d) == 1 or self.d[-1] != Byte.zero()
+
+  ### SOLUTION BLOCK
+  
+  def slow_mul(self, other):
+    '''
+    Slow method for multiplying two numbers w/ good constant factors.
+    '''
+    result = BigNum.zero(len(self.d) + len(other.d))
+    for i in xrange(0, len(self.d)):
+      carry = Byte.zero()
+      for j in xrange(0, len(other.d)):
+        word = self.d[i] * other.d[j] + result.d[i + j].word() + carry.word()
+        result.d[i + j] = word.lsb()
+        carry = word.msb()
+      result.d[i + len(other.d)] = carry
+    return result.normalize()
+
+  def slow_divmod(self, other):
+    '''
+    Slow method for dividing two numbers w/ good constant factors.
+    '''
+    remainder = BigNum(self.d)
+    divisors = [BigNum(other.d)]
+    two = BigNum.one() + BigNum.one()
+    while divisors[-1] < remainder:
+      divisors.append((divisors[-1] + divisors[-1]).normalize())
+    
+    quotient = BigNum.zero()
+    for i in xrange(len(divisors) - 1, -1, -1):
+      quotient = (quotient + quotient).normalize()
+      if remainder >= divisors[i]:
+        remainder = (remainder - divisors[i]).normalize()
+        quotient.d[0] |= Byte.one()
+    return (quotient.normalize(), remainder)    
+  
+  ### END SOLUTION BLOCK
